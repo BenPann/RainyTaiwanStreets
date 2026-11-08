@@ -96,6 +96,8 @@ h2{font-size:clamp(26px,8vw,34px)}
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #9c6c22}
 .btn.alt{background:#1a2433;color:var(--ink);box-shadow:0 4px 0 #0c121c;font-size:16px;border:1px solid var(--line)}
 .btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.setgroup{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.setlbl{font-family:var(--f-pixel);font-size:13px;color:var(--home);letter-spacing:.1em}
 .texmsg{margin:0;font-size:12.5px;line-height:1.5;color:var(--dim)}
 label.btn{text-align:center}
 .seedline{font-family:var(--f-pixel);font-size:11px;color:var(--dim);letter-spacing:.08em}
@@ -140,7 +142,6 @@ label.btn{text-align:center}
     </div>
 
     <section id="menu" class="overlay" aria-label="開始">
-      <div class="eyebrow">灰盒原型 v0.12</div>
       <h1>騎樓雨中跑酷</h1>
       <p class="lead">下雨了，傘忘在公司。沿著騎樓走回家，盡量別淋濕。</p>
       <dl class="rules">
@@ -151,22 +152,40 @@ label.btn{text-align:center}
         <dt>雨勢</dt><dd>越下越大，越晚淋雨越濕。濕度 100% 就失敗。</dd>
       </dl>
       <div class="ctrl">點畫面前進・左右滑動換線・往下滑後退<br>鍵盤：↑ 前進　↓ 後退　← → 換線　Esc 暫停</div>
-      <div class="opts" id="locOpts"><span class="optlbl">地點</span></div>
-      <div class="opts" id="timeOpts"><span class="optlbl">時段</span></div>
-      <div class="opts" id="swipeOpts"><span class="optlbl">滑動</span></div>
-      <div class="opts" id="musicOpts"><span class="optlbl">音樂</span>
-        <label class="opt" for="musicFile">載入音樂檔</label><input type="file" id="musicFile" accept="audio/*" hidden>
-      </div>
       <div class="btns">
         <button class="btn" id="startBtn" type="button">出發</button>
-        <label class="btn alt" for="texFiles">載入素材（PNG 或 ZIP）</label>
-        <input type="file" id="texFiles" accept="image/png,.zip,application/zip" multiple hidden>
-        <label class="btn alt" for="texDir">載入整個素材資料夾</label>
-        <input type="file" id="texDir" webkitdirectory multiple hidden>
-        <button class="btn alt" id="texReset" type="button" hidden>還原內建素材</button>
+        <button class="btn alt" id="settingsBtn" type="button">設定</button>
       </div>
-      <p class="texmsg" id="texMsg" hidden></p>
       <div class="seedline" id="menuSeed"></div>
+    </section>
+
+    <section id="settings" class="overlay" aria-label="設定" hidden>
+      <h2>設定</h2>
+      <div class="setgroup">
+        <div class="setlbl">遊戲</div>
+        <div class="opts" id="locOpts"><span class="optlbl">地點</span></div>
+        <div class="opts" id="timeOpts"><span class="optlbl">時段</span></div>
+        <div class="opts" id="swipeOpts"><span class="optlbl">滑動</span></div>
+      </div>
+      <div class="setgroup">
+        <div class="setlbl">聲音</div>
+        <div class="opts" id="musicOpts"><span class="optlbl">音樂</span>
+          <label class="opt" for="musicFile">載入音樂檔</label><input type="file" id="musicFile" accept="audio/*" hidden>
+        </div>
+      </div>
+      <div class="setgroup">
+        <div class="setlbl">自訂素材</div>
+        <div class="opts">
+          <label class="opt" for="texFiles">載入 PNG 或 ZIP</label>
+          <input type="file" id="texFiles" accept="image/png,.zip,application/zip" multiple hidden>
+          <label class="opt" for="texDir">載入整個資料夾</label>
+          <input type="file" id="texDir" webkitdirectory multiple hidden>
+          <button class="opt" id="texReset" type="button" hidden>還原內建素材</button>
+        </div>
+        <p class="texmsg" id="texMsg" hidden></p>
+      </div>
+      <div class="btns"><button class="btn" id="settingsDone" type="button">完成</button></div>
+      <div class="seedline" id="versionLine"></div>
     </section>
 
     <section id="pause" class="overlay" aria-label="暫停" hidden>
@@ -204,6 +223,7 @@ label.btn{text-align:center}
       <div class="btns">
         <button class="btn" id="againBtn" type="button">再走一次（新地圖）</button>
         <button class="btn alt" id="sameBtn" type="button">同一張地圖重來</button>
+        <button class="btn alt" id="resHomeBtn" type="button">回到開始畫面</button>
       </div>
       <div class="seedline" id="resSeed"></div>
     </section>
@@ -2939,10 +2959,7 @@ function resumeGame(){
 $('#pauseBtn').addEventListener('click',e=>{ e.stopPropagation(); pauseGame(); });
 $('#resumeBtn').addEventListener('click',resumeGame);
 $('#restartBtn').addEventListener('click',()=>{ $('#pause').hidden=true; start(G.seed); });
-$('#quitBtn').addEventListener('click',()=>{
-  musicFade(0);
-  G.state='menu'; $('#pause').hidden=true; $('#hud').hidden=true; $('#menu').hidden=false; loadLevel(newSeed());
-});
+$('#quitBtn').addEventListener('click',goHome);
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') pauseGame(); });
 
 /* ---------- 地點與時段選擇 ---------- */
@@ -2973,6 +2990,18 @@ buildOpts('#swipeOpts',SWIPE_MODES,SWIPE_REV?'reverse':'normal',id=>{ SWIPE_REV=
   }
   $('#musicBtn').textContent=musicOn?'音樂 開':'音樂 關';
 }
+
+/* ---------- 設定畫面、回到開始畫面 ---------- */
+const GAME_VERSION='0.15';
+$('#versionLine').textContent='版本 v'+GAME_VERSION;
+$('#settingsBtn').addEventListener('click',()=>{ $('#menu').hidden=true; $('#settings').hidden=false; $('#settingsDone').focus({preventScroll:true}); });
+$('#settingsDone').addEventListener('click',()=>{ $('#settings').hidden=true; $('#menu').hidden=false; $('#startBtn').focus({preventScroll:true}); });
+function goHome(){
+  musicFade(0); for(const v of G.vehicles) if(v.horn){ v.horn.stop(); v.horn=null; }
+  G.state='menu'; for(const id of ['#pause','#result','#itemPrompt','#settings']) $(id).hidden=true;
+  $('#hud').hidden=true; $('#menu').hidden=false; loadLevel(newSeed()); $('#startBtn').focus({preventScroll:true});
+}
+$('#resHomeBtn').addEventListener('click',goHome);
 
 /* ---------- 開始／結束 ---------- */
 function start(seed){
